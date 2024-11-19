@@ -12,7 +12,7 @@ def process_dataset(input_file, output_file):
         
         # Define the exact order of columns we want and their mappings from input
         ordered_columns = [
-            ('index', None),  # Will be added as row index
+            ('URL', 'url'),  # Will be added as row index
             ('having_IP_Address', 'ip'),
             ('URL_Length', 'length_url'),
             ('Shortining_Service', 'shortening_service'),
@@ -28,7 +28,7 @@ def process_dataset(input_file, output_file):
             ('Request_URL', 'Request_URL'),
             ('URL_of_Anchor', 'URL_of_Anchor'),
             ('Links_in_tags', 'links_in_tags'),
-            ('SFH', 'sfh'),
+            ('SFH', 'SFH'),
             ('Submitting_to_email', 'submit_email'),
             ('Abnormal_URL', 'abnormal_subdomain'),
             ('Redirect', 'nb_redirection'),
@@ -48,14 +48,13 @@ def process_dataset(input_file, output_file):
         
         # Create new dataframe with index
         new_df = pd.DataFrame()
-        new_df['index'] = range(len(df))
         
         # Add each column in specified order
-        for new_col, old_col in ordered_columns[1:]:  # Skip 'index' as we already added it
+        for new_col, old_col in ordered_columns[0:]:
             if old_col in df.columns:
                 new_df[new_col] = df[old_col]
             else:
-                new_df[new_col] = None  # Add empty column if input column doesn't exist
+                new_df[new_col] = None  
         
         # Save to new CSV file
         new_df.to_csv(output_file, index=False)
@@ -69,5 +68,5 @@ def process_dataset(input_file, output_file):
 
 if __name__ == "__main__": 
     input_file = './RAWData.csv'
-    output_file = "./RAW_Parseded.csv"
+    output_file = "./RAW_Parsed.csv"
     process_dataset(input_file, output_file)
