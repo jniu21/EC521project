@@ -1,6 +1,7 @@
 import requests
 import argparse
 import sys
+import csv
 import re
 from bs4 import BeautifulSoup
 from typing import Optional, Dict
@@ -47,6 +48,8 @@ def connectionHandler(url: str, params: Optional[Dict[str,str]] = None) -> Optio
 argParser = argparse.ArgumentParser(description = "Website Parsing")
 argParser.add_argument("-urlList", type=str, help="Path to a text file containing URLs")
 argParser.add_argument("-url", type=str, help="URL to be examined")
+argParser.add_argument("-output", type=str, default="HTMLjavascriptfeatures.csv", 
+                      help="Output CSV file name (default: HTMLjavascriptfeatures.csv)")
 
 # Make sure that the user passes arguments to command line 
 if len(sys.argv) == 1:
@@ -183,18 +186,77 @@ def HTMLparser(response: requests.Response) -> Optional[tuple[bool, bool, bool, 
             invisIframePresent = True
     return statusBarChanged, rightClickDisabled, popUpWithText, invisIframePresent
 
+
+def resultsToCsv(url: str, results: tuple, redirects: int, filename: str = "HTMLjavascriptfeatures.csv"):
+    """
+    writes results to a CSV
+    
+    Arguments:
+    url: The URL that was analyzed
+    results: Tuple of boolean results from HTMLparser
+    redirects: Number of redirects encountered
+    filename: Name of the CSV file to write to
+    """
+    headers = [
+        "URL",
+        "Redirects",
+        "Status_Bar_Manip",
+        "Right_Click_Disabled",
+        "Text_Input_Popup",
+        "Invis_Iframe"
+    ]
+    
+    # check if file already exists
+    file_exists = False
+    try:
+        with open(filename, 'r') as f:
+            file_exists = True
+    except FileNotFoundError:
+        pass
+        
+    with open(filename, 'a', newline='') as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(headers)
+        
+        writer.writerow([
+            url,
+            redirects,
+            results[0],  
+            results[1],  
+            results[2],  
+            results[3]   
+        ])
+
+
 while (urlDeque):
     currentSite = urlDeque.popleft()
     siteResponse = connectionHandler(currentSite) 
-
+    susRedirect = 0
+    results = [0, 0, 0, 0]
     if siteResponse:
-        print(len(siteResponse.history))
+        redirectCount = len(siteResponse.history);
+        if (redirectCount <= 1):
+            susRedirect = 1
+        elif (redirectCount >= 2 and redirectCount < 4): #technically redundant but added for clarity
+            susRedirect = 0
+        else: 
+            susRedirect = -1
         results = HTMLparser(siteResponse)
         if results:
             statusBar, rightClick, popUp, invisibleIframe = results
-            print(f"Status bar manipulation: {statusBar}")
-            print(f"Right click disabled: {rightClick}")
-            print(f"Pop-up with text input: {popUp}")
-            print(f"Invisible iframe present: {invisibleIframe}")
+            results = list(results)
+            i = 0
+            for feat in results: 
+                if (feat): results[i] = -1
+                else: results[i] = 1
+                i += 1
+            results = tuple(results)
+            #print(f"Status bar manipulation: {statusBar}")
+            #print(f"Right click disabled: {rightClick}")
+            #print(f"Pop-up with text input: {popUp}")
+            #print(f"Invisible iframe present: {invisibleIframe}")
+    resultsToCsv(currentSite, results, susRedirect, args.output)
+
 
 
