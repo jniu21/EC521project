@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <style>
+        .container {
+          width: 200px;
+          padding: 10px;
+        }
+        .switch {
+          /* Toggle switch styling */
+          position: relative;
+          display: inline-block;
+          width: 60px;
+          height: 34px;
+        }
+        .switch input {
+          opacity: 0;
+          width: 0;
+          height: 0;
+        }
+        .slider {
+          position: absolute;
+          cursor: pointer;
+          background-color: #ccc;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          transition: .4s;
+          border-radius: 34px;
+        }
+        .slider:before {
+          content: "";
+          height: 26px;
+          width: 26px;
+          left: 4px;
+          bottom: 4px;
+          background-color: white;
+          position: absolute;
+          transition: .4s;
+          border-radius: 50%;
+        }
+        input:checked + .slider {
+          background-color: #2196F3;
+        }
+        input:checked + .slider:before {
+          transform: translateX(26px);
+        }
+      </style>
+</head>
+<body>
+    <div class="container">
+        <h3>phishing Detector</h3>
+        <label class="switch">
+            <input type="checkbox" id="toggleSwitch">
+            <span class="slider"></span>
+        </label>
+        <p id="status">Protection is off</p>
+    </div>    
+    <script src="popup.js"></script>
+</body>
+
+</html>
