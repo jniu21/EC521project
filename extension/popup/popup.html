@@ -1,14 +1,23 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <script src="../lib/tfjs/tf.min.js"></script>
   <style>
+    body { 
+      width: 300px; 
+      padding: 15px; 
+      font-family: Arial, sans-serif;
+    }
     .container {
-      width: 200px;
-      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
     .switch {
-      /* Toggle switch styling */
       position: relative;
       display: inline-block;
       width: 60px;
@@ -22,22 +31,22 @@
     .slider {
       position: absolute;
       cursor: pointer;
-      background-color: #ccc;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
+      background-color: #ccc;
       transition: .4s;
       border-radius: 34px;
     }
     .slider:before {
+      position: absolute;
       content: "";
       height: 26px;
       width: 26px;
       left: 4px;
       bottom: 4px;
       background-color: white;
-      position: absolute;
       transition: .4s;
       border-radius: 50%;
     }
@@ -47,16 +56,51 @@
     input:checked + .slider:before {
       transform: translateX(26px);
     }
+    .url-display {
+      padding: 10px;
+      background-color: #f5f5f5;
+      border-radius: 4px;
+      word-break: break-all;
+      font-size: 12px;
+    }
+    .message-box {
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    .info {
+      background-color: #e3f2fd;
+      color: #1976d2;
+    }
+    .error {
+      background-color: #ffebee;
+      color: #c62828;
+    }
+    .success {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h3>Phishing Detector</h3>
-    <label class="switch">
-      <input type="checkbox" id="toggleSwitch">
-      <span class="slider"></span>
-    </label>
-    <p id="status">Protection is off</p>
+    <div class="toggle-container">
+      <label class="switch">
+        <input type="checkbox" id="toggleSwitch">
+        <span class="slider"></span>
+      </label>
+      <span id="status">Protection is Off</span>
+    </div>
+    
+    <div>
+      <strong>Current URL:</strong>
+      <div id="currentUrl" class="url-display">No URL detected</div>
+    </div>
+    
+    <div id="messageContainer" class="message-box info" style="display: none;">
+      Waiting for analysis...
+    </div>
   </div>
   <script src="popup.js"></script>
 </body>
