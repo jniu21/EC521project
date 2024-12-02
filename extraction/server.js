@@ -11,13 +11,29 @@ app.use(express.json());
 app.post('/extract-features', async (req, res) => {
     try {
         const { url } = req.body;
+        console.log('Received request for URL:', url);
+        
+        const start = Date.now();
         const features = await extractURLFeatures(url);
-        res.json({ success: true, features });
+        const timeElapsed = Date.now() - start;
+        
+        console.log(`Feature extraction completed in ${timeElapsed}ms`);
+        
+        // Check if features were actually returned
+        if (!features) {
+            throw new Error('No features returned');
+        }
+        
+        res.json({ 
+            success: true, 
+            features,
+            extractionTime: timeElapsed 
+        });
     } catch (error) {
         console.error('Feature extraction error:', error);
         res.status(500).json({ 
             success: false, 
-            error: error.message 
+            error: error.message || 'Feature extraction failed'
         });
     }
 });
