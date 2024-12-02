@@ -70,7 +70,7 @@ async function calculateRatios(url) {
         link.startsWith('#') || link.startsWith('javascript') || link.startsWith('mailto')
     ).length;
             //NOTE: toFixed() will produce a STRING representation of the float, so will need to convert afterwards 
-    const anchorUrlRatio = totalLinks > 0 ? (unsafeLinks / totalLinks).toFixed(2) : 0; 
+    const anchorUrlRatio = totalLinks > 0 ? (unsafeLinks / totalLinks) : 0; 
 
     //links in tags ratio
     const internalLinks = linkTags.filter(tag => {
@@ -82,7 +82,7 @@ async function calculateRatios(url) {
         }
     }).length;
         //see note above about toFixed()
-    const linksInTagsRatio = linkTags.length > 0 ? (internalLinks / linkTags.length).toFixed(2) : 0;
+    const linksInTagsRatio = linkTags.length > 0 ? (internalLinks / linkTags.length) : 0;
 
     return {requestUrlRatio, anchorUrlRatio, linksInTagsRatio};
 }
@@ -115,7 +115,7 @@ async function getPageRank(url, apiKey) {
         });
         if (response.data && response.data.response && response.data.response[0]) {
             const rank = response.data.response[0].page_rank_decimal;
-            return rank !== null ? rank : 0; 
+            return (rank !== null && rank !== '') ? rank : 0; 
         } else {
             return 0; 
         }
@@ -164,16 +164,33 @@ async function extractURLFeatures(url) {
                           Domain_age: 0,
                           Abnormal_URL: 1
         };
-        whois.lookup(hostname, (err, data) => {
+        whois.lookup(hostname.replace(/^www\./, ''), (err, data) => {
             if (!err) {
-                const expirationDate = parseExpDate(data);
-                //console.log("Expiration Date", expirationDate); 
-                const creationDate = parseCreatDate(data);
-                domainInfo = {
-                    Domain_Registration_Length: calculateYears(expirationDate, creationDate), //lots of nulls !!
-                    Domain_age: calculateDays(creationDate),
-                    Abnormal_URL: creationDate ? 1 : 0
-                };
+                let creationDate, expirationDate;
+                data.split('\n').forEach(line => {
+                if (line.includes('Creation Date')) {
+                    creationDate = line.split(': ')[1].trim();
+                } else if (line.includes('Registrar Registration Expiration Date')) {
+                    expirationDate = line.split(': ')[1].trim();
+                }
+                });
+
+                if (creationDate && expirationDate) {
+                    const creationDateObj = new Date(creationDate);
+                    const expirationDateObj = new Date(expirationDate);
+                    const now = new Date();
+                    domainInfo = {
+                        Domain_Registration_Length: expirationDateObj.getFullYear()-now.getFullYear(),
+                        Domain_age: now.getFullYear() - creationDateObj.getFullYear(),
+                        Abnormal_URL: 0
+                    };
+                    
+                    //console.log(`Creation Date: ${creationDate}`);
+                    //console.log(`Expiration Date: ${domainInfo.Domain_Registration_Length}`);
+                    //console.log(`Domain Age: ${domainInfo.Domain_age} years`);
+                } else {
+                    console.error("Could not extract dates");
+                }
             }
         });
 
@@ -185,86 +202,43 @@ async function extractURLFeatures(url) {
         //const websiteTraffic = "------"; //similarweb or ahrefs?
 
         const pageRankAPIKey = `${process.env.PAGE_RANK_API_KEY}`;
-        const pageRank = await getPageRank(url, pageRankAPIKey);
+        const pageRank = await getPageRank(hostname, pageRankAPIKey);
 
         const googleAPIKey = `${process.env.GOOGLE_API_KEY}`;
         const searchEngineId = `${process.env.searchEngineId}`;
         const isIndexed = await isGoogleIndexed(url, googleAPIKey, searchEngineId);
 
-        return { //you can/should redo the naming because its mildly inconvenient
-            URL_Length: urlLength,
-            having_HTTPS: hasHttps,
-            having_IP_Address: hasIPAddress,
-            Shortening_Service: isShortenedURL,
-            having_At_Symbol: hasAtSymbol,
-            Double_slash_redirecting: hasDoubleSlashRedirecting,
-            Prefix_Suffix: hasDash,
-            Sub_Domain_Count: subDomainCount,
-            Domain_Registration_Length: domainInfo.Domain_Registration_Length,
-            Favicon: faviconExternal,
-            Port: hasPort,
-            Request_URL: requestUrlRatio,
-            Anchor_URL: anchorUrlRatio,
-            Links_in_Tags: linksInTagsRatio,
-            Abnormal_URL: domainInfo.Abnormal_URL,
-            Domain_age: domainInfo.Domain_age,
-            DNS_record: hasDNSRecord,
+        return [
+            hasIPAddress,
+            urlLength,
+            isShortenedURL,
+            hasAtSymbol,
+            hasDoubleSlashRedirecting,
+            hasDash,
+            subDomainCount,
+            domainInfo.Domain_Registration_Length,
+            faviconExternal,
+            hasPort,
+            hasHttps,
+            requestUrlRatio,
+            anchorUrlRatio,
+            linksInTagsRatio,
+            domainInfo.Abnormal_URL,
+            domainInfo.Domain_age,
+            hasDNSRecord,
             //Website_traffic: websiteTraffic,
-            Page_rank: pageRank,
-            Google_Index: isIndexed
-        };
+            pageRank,
+            isIndexed
+        ];
     } catch (error) { //being extra safe
         console.error("Invalid URL:", error);
-        
-        return { 
-        URL_Length: 100,
-        having_HTTPS: 1,
-        having_IP_Address: 1,
-        Shortening_Service: 1,
-        having_At_Symbol: 1,
-        Double_slash_redirecting: 1,
-        Prefix_Suffix: 1,
-        Sub_Domain_Count: 2,
-        Domain_Registration_Length: 1,
-        Favicon: 1,
-        Port: 1,
-        Request_URL: 100,
-        Anchor_URL: 1.0,
-        Links_in_Tags: 1.0,
-        Abnormal_URL: 1,
-        Domain_age: 0,
-        DNS_record: 0,
-        //Website_traffic: 0,
-        Page_rank: -1,
-        Google_Index: 0};
+        return [ 1,100,1,1,1,1,10,0,1,0,0,1,1,1,-1,-1,0,-1, 0];
     }
-}
-
-//these are helpers for date conversions - credit to chat...
-function parseExpDate(data) {
-    const match = data.match(/Expiry Date:\s*(.*)/i);
-    return match ? new Date(match[1]) : null;
-}
-function parseCreatDate(data) {
-    const match = data.match(/Creation Date:\s*(.*)/i);
-    return match ? new Date(match[1]) : null;
-}
-function calculateYears(expirationDate, creationDate) {
-    if (expirationDate && creationDate) {
-        return ((expirationDate - creationDate) / (1000 * 60 * 60 * 24 * 365)).toFixed(2);
-    }
-    return null;
-}
-function calculateDays(creationDate) {
-    if (creationDate) {
-        return Math.floor((Date.now() - creationDate) / (1000 * 60 * 60 * 24));
-    }
-    return null;
 }
 
 (async () => { //needs to be async otherwise you're just gonna get Promises returned
     var start = Date.now();
-    const url = "https://www.google.com/";
+    const url = "https://docs.expo.dev/guides/using-firebase/#using-react-native-firebase";
     try {
         const features = await extractURLFeatures(url);
         console.log("Extraction Time (ms):", Date.now()-start);
