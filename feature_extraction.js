@@ -70,7 +70,7 @@ async function calculateRatios(url) {
         link.startsWith('#') || link.startsWith('javascript') || link.startsWith('mailto')
     ).length;
             //NOTE: toFixed() will produce a STRING representation of the float, so will need to convert afterwards 
-    const anchorUrlRatio = totalLinks > 0 ? (unsafeLinks / totalLinks).toFixed(2) : 0; 
+    const anchorUrlRatio = totalLinks > 0 ? (unsafeLinks / totalLinks) : 0; 
 
     //links in tags ratio
     const internalLinks = linkTags.filter(tag => {
@@ -82,7 +82,7 @@ async function calculateRatios(url) {
         }
     }).length;
         //see note above about toFixed()
-    const linksInTagsRatio = linkTags.length > 0 ? (internalLinks / linkTags.length).toFixed(2) : 0;
+    const linksInTagsRatio = linkTags.length > 0 ? (internalLinks / linkTags.length) : 0;
 
     return {requestUrlRatio, anchorUrlRatio, linksInTagsRatio};
 }
@@ -113,9 +113,10 @@ async function getPageRank(url, apiKey) {
             headers: {"API-OPR": apiKey},
             params: {domains: [url]} //important: singular urls still need to be placed into an array
         });
+       // console.log(response.data)
         if (response.data && response.data.response && response.data.response[0]) {
             const rank = response.data.response[0].page_rank_decimal;
-            return rank !== null ? rank : 0; 
+            return (rank !== null && rank !== '') ? rank : 0; 
         } else {
             return 0; 
         }
@@ -167,13 +168,20 @@ async function extractURLFeatures(url) {
         whois.lookup(hostname, (err, data) => {
             if (!err) {
                 const expirationDate = parseExpDate(data);
-                //console.log("Expiration Date", expirationDate); 
                 const creationDate = parseCreatDate(data);
+                if (expirationDate === null || creationDate === null) {
+                    domainInfo = {
+                    Domain_Registration_Length: -1, 
+                    Domain_age: -1,
+                    Abnormal_URL: 0
+                    }
+                } else {
                 domainInfo = {
                     Domain_Registration_Length: calculateYears(expirationDate, creationDate), //lots of nulls !!
                     Domain_age: calculateDays(creationDate),
                     Abnormal_URL: creationDate ? 1 : 0
                 };
+                }
             }
         });
 
@@ -185,58 +193,38 @@ async function extractURLFeatures(url) {
         //const websiteTraffic = "------"; //similarweb or ahrefs?
 
         const pageRankAPIKey = `${process.env.PAGE_RANK_API_KEY}`;
-        const pageRank = await getPageRank(url, pageRankAPIKey);
-
-        const googleAPIKey = `${process.env.GOOGLE_API_KEY}:`;
+        const pageRank = await getPageRank(hostname, pageRankAPIKey);
+       
+        const googleAPIKey = `${process.env.GOOGLE_API_KEY}`;
         const searchEngineId = "22b1d4c266c6745d8"
         const isIndexed = await isGoogleIndexed(url, googleAPIKey, searchEngineId);
 
-        return { //you can/should redo the naming because its mildly inconvenient
-            URL_Length: urlLength,
-            having_HTTPS: hasHttps,
-            having_IP_Address: hasIPAddress,
-            Shortening_Service: isShortenedURL,
-            having_At_Symbol: hasAtSymbol,
-            Double_slash_redirecting: hasDoubleSlashRedirecting,
-            Prefix_Suffix: hasDash,
-            Sub_Domain_Count: subDomainCount,
-            Domain_Registration_Length: domainInfo.Domain_Registration_Length,
-            Favicon: faviconExternal,
-            Port: hasPort,
-            Request_URL: requestUrlRatio,
-            Anchor_URL: anchorUrlRatio,
-            Links_in_Tags: linksInTagsRatio,
-            Abnormal_URL: domainInfo.Abnormal_URL,
-            Domain_age: domainInfo.Domain_age,
-            DNS_record: hasDNSRecord,
+        return [ //you can/should redo the naming because its mildly inconvenient
+            hasIPAddress,
+            urlLength,
+            isShortenedURL,
+            hasAtSymbol,
+            hasDoubleSlashRedirecting,
+            hasDash,
+            subDomainCount,
+            domainInfo.Domain_Registration_Length,
+            faviconExternal,
+            hasPort,
+            hasHttps,
+            requestUrlRatio,
+            anchorUrlRatio,
+            linksInTagsRatio,
+            domainInfo.Abnormal_URL,
+            domainInfo.Domain_age,
+            hasDNSRecord,
             //Website_traffic: websiteTraffic,
-            Page_rank: pageRank,
-            Google_Index: isIndexed
-        };
+            pageRank,
+            isIndexed
+        ];
     } catch (error) { //being extra safe
         console.error("Invalid URL:", error);
         
-        return { 
-        URL_Length: 100,
-        having_HTTPS: 1,
-        having_IP_Address: 1,
-        Shortening_Service: 1,
-        having_At_Symbol: 1,
-        Double_slash_redirecting: 1,
-        Prefix_Suffix: 1,
-        Sub_Domain_Count: 2,
-        Domain_Registration_Length: 1,
-        Favicon: 1,
-        Port: 1,
-        Request_URL: 100,
-        Anchor_URL: 1.0,
-        Links_in_Tags: 1.0,
-        Abnormal_URL: 1,
-        Domain_age: 0,
-        DNS_record: 0,
-        //Website_traffic: 0,
-        Page_rank: -1,
-        Google_Index: 0};
+        return [ 1,100,1,1,1,1,10,0,1,0,0,1,1,1,-1,-1,0,-1, 0];
     }
 }
 
