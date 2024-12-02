@@ -187,8 +187,8 @@ async function extractURLFeatures(url) {
         const pageRankAPIKey = `${process.env.PAGE_RANK_API_KEY}`;
         const pageRank = await getPageRank(url, pageRankAPIKey);
 
-        const googleAPIKey = `${process.env.GOOGLE_API_KEY}:`;
-        const searchEngineId = "22b1d4c266c6745d8"
+        const googleAPIKey = `${process.env.GOOGLE_API_KEY}`;
+        const searchEngineId = `${process.env.searchEngineId}`;
         const isIndexed = await isGoogleIndexed(url, googleAPIKey, searchEngineId);
 
         return { //you can/should redo the naming because its mildly inconvenient
