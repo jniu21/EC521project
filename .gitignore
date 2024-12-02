@@ -9,3 +9,7 @@
 pyvenv.cfg
 .venv
 pip-selfcheck.json
+HTMLJavascriptFeatures.csv
+results.csv
+node_modules/
+
