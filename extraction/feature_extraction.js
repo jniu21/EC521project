@@ -236,14 +236,18 @@ async function extractURLFeatures(url) {
     }
 }
 
-(async () => { //needs to be async otherwise you're just gonna get Promises returned
-    var start = Date.now();
-    const url = "https://docs.expo.dev/guides/using-firebase/#using-react-native-firebase";
-    try {
-        const features = await extractURLFeatures(url);
-        console.log("Extraction Time (ms):", Date.now()-start);
-        console.log("Extracted Features:", features);
-    } catch (error) {
-        console.error("Error extracting features:", error);
-    }
-})();
+module.exports = {
+    extractURLFeatures
+};
+
+// (async () => { //needs to be async otherwise you're just gonna get Promises returned
+//     var start = Date.now();
+//     const url = "https://www.google.com/";
+//     try {
+//         const features = await extractURLFeatures(url);
+//         console.log("Extraction Time (ms):", Date.now()-start);
+//         console.log("Extracted Features:", features);
+//     } catch (error) {
+//         console.error("Error extracting features:", error);
+//     }
+// })();
