@@ -1,26 +1,26 @@
-async function analyzeUrl(url, htmlContent) {
+async function analyzeUrl(url) {
     try {
-        // Get features from feature extraction service
+        console.log('Sending URL to feature extraction service:', url);
+        
+        // Get features from Node.js server
         const featureResponse = await fetch('http://localhost:3000/extract-features', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url })
         });
         
-        const featureResult = await featureResponse.json();
-        if (!featureResult.success) {
-            throw new Error(featureResult.error);
+        if (!featureResponse.ok) {
+            throw new Error(`Feature extraction failed: ${featureResponse.statusText}`);
         }
-
-        // Send features to model server
-        const modelResponse = await fetch('http://localhost:5000/predict', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(featureResult.features)
-        });
         
-        const result = await modelResponse.json();
-        return result;
+        const featureResult = await featureResponse.json();
+        console.log('Features received:', featureResult);
+        
+        return {
+            success: true,
+            features: featureResult.features,
+            extractionTime: featureResult.extractionTime
+        };
     } catch (error) {
         console.error("Error in URL analysis:", error);
         return { 
@@ -32,12 +32,19 @@ async function analyzeUrl(url, htmlContent) {
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "analyzeUrl") {
-        analyzeUrl(request.url, request.htmlContent)
-            .then(result => sendResponse(result))
-            .catch(error => sendResponse({ 
-                success: false, 
-                message: error.toString() 
-            }));
+        console.log('Received analysis request for URL:', request.url);
+        analyzeUrl(request.url)
+            .then(result => {
+                console.log('Analysis result:', result);
+                sendResponse(result);
+            })
+            .catch(error => {
+                console.error('Analysis error:', error);
+                sendResponse({ 
+                    success: false, 
+                    message: error.toString() 
+                });
+            });
         return true;
     }
 });
