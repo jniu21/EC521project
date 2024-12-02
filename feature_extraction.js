@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const dns = require('dns');
 const whois = require('whois');
 const axios = require('axios');
@@ -182,10 +184,10 @@ async function extractURLFeatures(url) {
 
         //const websiteTraffic = "------"; //similarweb or ahrefs?
 
-        const pageRankAPIKey = ``;
+        const pageRankAPIKey = `${process.env.PAGE_RANK_API_KEY}`;
         const pageRank = await getPageRank(url, pageRankAPIKey);
 
-        const googleAPIKey = "";
+        const googleAPIKey = `${process.env.GOOGLE_API_KEY}:`;
         const searchEngineId = "22b1d4c266c6745d8"
         const isIndexed = await isGoogleIndexed(url, googleAPIKey, searchEngineId);
 
@@ -262,7 +264,7 @@ function calculateDays(creationDate) {
 
 (async () => { //needs to be async otherwise you're just gonna get Promises returned
     var start = Date.now();
-    const url = "https://docs.expo.dev/guides/new-architecture/";
+    const url = "https://www.google.com/";
     try {
         const features = await extractURLFeatures(url);
         console.log("Extraction Time (ms):", Date.now()-start);
