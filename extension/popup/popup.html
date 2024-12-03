@@ -1,82 +1,24 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>URL Safety Analyzer</title>
-  <style>
-    .container {
-      width: 300px;
-      padding: 15px;
-    }
-    
-    .toggle-container {
-      display: flex;
-      align-items: center;
-      margin-bottom: 15px;
-    }
-    
-    .slider {
-      position: relative;
-      display: inline-block;
-      width: 60px;
-      height: 34px;
-      margin-right: 10px;
-    }
-    
-    .url-display {
-      word-break: break-all;
-      margin: 10px 0;
-      padding: 8px;
-      background: #f5f5f5;
-      border-radius: 4px;
-    }
-    
-    .message-box {
-      padding: 10px;
-      margin-top: 10px;
-      border-radius: 4px;
-    }
-    
-    .info {
-      background: #e3f2fd;
-      color: #0d47a1;
-    }
-    
-    .success {
-      background: #e8f5e9;
-      color: #1b5e20;
-    }
-    
-    .error {
-      background: #ffebee;
-      color: #b71c1c;
-    }
-    
-    .warning {
-      background: #fff3e0;
-      color: #e65100;
-    }
-  </style>
+    <title>Phishing Detector</title>
+    <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <div class="container">
-    <div class="toggle-container">
-      <input type="checkbox" id="toggleSwitch" class="slider">
-      <span id="status">Protection is Off</span>
+    <div class="container">
+        <div class="toggle-container">
+            <input type="checkbox" id="toggleSwitch">
+            <span id="status">Protection is Off</span>
+        </div>
+        <div>
+            <strong>Current URL:</strong>
+            <div id="currentUrl" class="url-display">No URL detected</div>
+        </div>
+        <div id="messageContainer" class="message-box info" style="display: none;">
+            Waiting for analysis...
+        </div>
+        <div id="analysisResult" class="message-box" style="display: none;"></div>
     </div>
-
-    <div>
-      <strong>Current URL:</strong>
-      <div id="currentUrl" class="url-display">
-        No URL detected
-      </div>
-    </div>
-
-    <div id="messageContainer" class="message-box info" style="display: none;">
-      Waiting for analysis...
-    </div>
-
-    <div id="analysisResult" class="message-box" style="display: none;"></div>
-  </div>
-  <script src="popup.js"></script>
+    <script src="popup.js"></script>
 </body>
 </html>

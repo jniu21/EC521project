@@ -13,30 +13,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     // Function to show analysis result
-    const showAnalysisResult = (result, type) => {
-        analysisResult.textContent = result;
-        analysisResult.className = `message-box ${type}`;
+    const showAnalysisResult = (features, extractionTime) => {
+        // Create a formatted display of all features
+        const featureList = Object.entries(features)
+            .map(([key, value]) => `<strong>${key}:</strong> ${value}`)
+            .join('<br>');
+
+        analysisResult.innerHTML = `
+            <h3>Feature Extraction Results:</h3>
+            <div>Extraction Time: ${extractionTime}ms</div>
+            <div class="feature-list">
+                ${featureList}
+            </div>
+        `;
+        analysisResult.className = 'message-box info';
         analysisResult.style.display = 'block';
     };
 
     // Function to analyze URL
-    const analyzeCurrentUrl = async (url, htmlContent) => {
+    const analyzeCurrentUrl = async (url) => {
         try {
             showMessage('Analyzing URL...', 'info');
             
             const response = await chrome.runtime.sendMessage({
                 action: "analyzeUrl",
-                url: url,
-                htmlContent: htmlContent
+                url: url
             });
 
             if (response.success) {
-                const resultType = response.message === 'legit' ? 'success' : 'error';
-                const resultMessage = `Analysis Result: This URL appears to be ${response.message}`;
-                showAnalysisResult(resultMessage, resultType);
+                showAnalysisResult(response.features, response.extractionTime);
                 showMessage('Analysis complete', 'success');
             } else {
-                showAnalysisResult('Unable to analyze URL', 'error');
+                analysisResult.textContent = 'Unable to analyze URL';
+                analysisResult.className = 'message-box error';
+                analysisResult.style.display = 'block';
                 showMessage(response.message, 'error');
             }
         } catch (error) {
@@ -62,11 +72,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showMessage('This is a restricted page that cannot be analyzed', 'error');
                 toggle.disabled = true;
             } else if (isEnabled) {
-                const [{ result: htmlContent }] = await chrome.scripting.executeScript({
-                    target: { tabId: tab.id },
-                    function: () => document.documentElement.outerHTML
-                });
-                await analyzeCurrentUrl(tab.url, htmlContent);
+                await analyzeCurrentUrl(tab.url);
             }
         }
     } catch (error) {
@@ -83,11 +89,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
                 if (tab?.url) {
-                    const [{ result: htmlContent }] = await chrome.scripting.executeScript({
-                        target: { tabId: tab.id },
-                        function: () => document.documentElement.outerHTML
-                    });
-                    await analyzeCurrentUrl(tab.url, htmlContent);
+                    await analyzeCurrentUrl(tab.url);
                 }
                 status.textContent = 'Protection is On';
             } catch (error) {
