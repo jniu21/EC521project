@@ -231,7 +231,7 @@ async function extractURLFeatures(url) {
             hasDNSRecord = err ? -1 : 1;
         });
 
-        const websiteTraffic = 0; //similarweb or ahrefs?
+        const websiteTraffic = 1; //similarweb or ahrefs?
 
         const pageRankAPIKey = `${process.env.PAGE_RANK_API_KEY}`;
         const pageRankT = await getPageRank(hostname, pageRankAPIKey);
