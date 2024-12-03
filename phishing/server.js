@@ -1,11 +1,20 @@
+/* 
+Prefix/Suffix: Used dashes in domain names
+Subdomains: Included multiple subdomains
+Port: Added URLs with non-standard ports (8080)
+HTTPS token: Mixed HTTP/HTTPS usage
+Request URL: Added external resource requests
+Anchor URL: Included multiple external domain links
+Links in Tags: Added images and resources from different domains
+
+*/
+
 const express = require('express');
 const app = express();
 const port = 3001;
 
-// Serve static files from 'public' directory
 app.use(express.static('public'));
 
-// Main route
 app.get('/', (req, res) => {
     res.send(`
 <!DOCTYPE html>
