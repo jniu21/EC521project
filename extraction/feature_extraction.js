@@ -15,10 +15,10 @@ async function isFaviconExternal(url) {
         const response = await axios.get(faviconUrl, { maxRedirects: 5 });
         const faviconDomain = new URL(response.config.url).hostname;
 
-        return faviconDomain !== hostname ? 1 : 0;
+        return faviconDomain !== hostname ? -1 : 1;
     } catch (error) {
         console.error("Error fetching favicon:", error.message);
-        return 1; //just assume worst case (external)
+        return 0; //just assume worst case (external)
     }
 }
 
@@ -63,15 +63,28 @@ async function calculateRatios(url) {
             return false; 
         }
     }).length;
-    const requestUrlRatio = totalLinks > 0 ? Math.round((externalLinks / totalLinks) * 100) : 0;
+    const requestUrlRatioT = totalLinks > 0 ? Math.round((externalLinks / totalLinks)) : 0;
+    if (requestUrlRatioT <= 0.22) {
+        requestUrlRatio = 1;
+    } else if (requestUrlRatioT > 0.22 && requestUrlRatioT <= 0.61) {
+        requestUrlRatio = 0;
+    } else {
+        requestUrlRatio = -1;
+    }
 
     //anchor URL ratio
     const unsafeLinks = links.filter(link =>
         link.startsWith('#') || link.startsWith('javascript') || link.startsWith('mailto')
     ).length;
             //NOTE: toFixed() will produce a STRING representation of the float, so will need to convert afterwards 
-    const anchorUrlRatio = totalLinks > 0 ? (unsafeLinks / totalLinks) : 0; 
-
+    const anchorUrlRatioT = totalLinks > 0 ? (unsafeLinks / totalLinks) : 0; 
+    if (anchorUrlRatioT < 0.31) {
+        anchorUrlRatio = 1;
+    } else if (anchorUrlRatioT >= 0.31 && anchorUrlRatioT <= 0.67) {
+        anchorUrlRatio = 0;
+    } else {
+        anchorUrlRatio = -1;
+    }
     //links in tags ratio
     const internalLinks = linkTags.filter(tag => {
         try {
@@ -82,8 +95,14 @@ async function calculateRatios(url) {
         }
     }).length;
         //see note above about toFixed()
-    const linksInTagsRatio = linkTags.length > 0 ? (internalLinks / linkTags.length) : 0;
-
+    const linksInTagsRatioT = linkTags.length > 0 ? (internalLinks / linkTags.length) : 0;
+    if ((1-linksInTagsRatioT) < 0.17) {
+        linksInTagsRatio = 1;
+    } else if ((1-linksInTagsRatioT) >= 0.17 && (1-linksInTagsRatioT) <= 0.81) {
+        linksInTagsRatio = 0;
+    } else {
+        linksInTagsRatio = -1;
+    }
     return {requestUrlRatio, anchorUrlRatio, linksInTagsRatio};
 }
 
@@ -95,13 +114,13 @@ async function isGoogleIndexed(url, apiKey, searchEngineId) {
             params: {key: apiKey, cx: searchEngineId, q: `site:${url}`, num: 1 
             }
         });
-        return response.data.items && response.data.items.length > 0 ? 1 : 0;
+        return response.data.items && response.data.items.length > 0 ? -1 : 1;
     } catch (error) {
         if (error.response && error.response.status === 404) {
             return 0;
         }
         console.error("Error checking Google index:", error.message);
-        return 0; 
+        return 1; 
     }
 }
 
@@ -130,34 +149,47 @@ async function extractURLFeatures(url) {
         const parsedUrl = new URL(url);
         const hostname = parsedUrl.hostname;
         //const path = parsedUrl.pathname;
-
-        const urlLength = url.length;
+        if (url.length < 54) {
+            urlLength = 1;
+        } else if (url.length > 54 && url.length < 75) {
+            urlLength = 0;
+        } else {
+            urlLength = -1;
+        }
+        //const urlLength = url.length;
         //console.log(urlLength);
-        const hasHttps = parsedUrl.protocol === "https:" ? 1 : 0;
+        const hasHttps = parsedUrl.protocol === "https:" ? 1 : -1;
         
         const ipAddressRegex = /^(?:\d{1,3}\.){3}\d{1,3}$|^(0x[0-9A-Fa-f]+)(\.|$)/;
-        const hasIPAddress = ipAddressRegex.test(hostname) ? 1 : 0; //there is an easier way to do this but regex is more robust
+        const hasIPAddress = ipAddressRegex.test(hostname) ? -1 : 1; //there is an easier way to do this but regex is more robust
         
         const shorteningServices = ["bit.ly", "tinyurl.com", "goo.gl", "ow.ly", "is.gd", "buff.ly", "adf.ly"];
-        const isShortenedURL = shorteningServices.some(service => hostname.includes(service)) ? 1 : 0;
+        const isShortenedURL = shorteningServices.some(service => hostname.includes(service)) ? 1 : -1;
         
-        const hasAtSymbol = url.includes('@') ? 1 : 0;
+        const hasAtSymbol = url.includes('@') ? -1 : 1;
         
         const doubleSlashIndex = url.indexOf("//", 8); //ideally this skips the protocol part but might need to tweak
-        const hasDoubleSlashRedirecting = doubleSlashIndex > 7 ? 1 : 0;
+        const hasDoubleSlashRedirecting = doubleSlashIndex > 7 ? -1 : 1;
         
-        const hasDash = hostname.includes('-') ? 1 : 0;
+        const hasDash = hostname.includes('-') ? -1 : 1;
         
         const domainParts = hostname.replace(/^www\./, '').split('.');
-        const subDomainCount = domainParts.length - 2;
+        if (domainParts.length - 2 === 1) {
+            subDomainCount = 1;
+        } else if (domainParts.length - 2 === 2) {
+            subDomainCount = 0;
+        } else {
+            subDomainCount = -1;
+        }
+        //const subDomainCount = domainParts.length - 2;
         //const hasSubDomain = subDomainCount;
 
-        const hasPort = parsedUrl.port ? 1 : 0;
+        const hasPort = parsedUrl.port ? -1 : 1;
         //easy code ends here
         
         //NOTE: these are grouped together because they all require HTML parsing
         const {requestUrlRatio, anchorUrlRatio, linksInTagsRatio} = await calculateRatios(url);
-
+        
         const faviconExternal = await isFaviconExternal(url);
 
         let domainInfo = {Domain_Registration_Length: 0, 
@@ -180,9 +212,9 @@ async function extractURLFeatures(url) {
                     const expirationDateObj = new Date(expirationDate);
                     const now = new Date();
                     domainInfo = {
-                        Domain_Registration_Length: expirationDateObj.getFullYear()-now.getFullYear(),
-                        Domain_age: now.getFullYear() - creationDateObj.getFullYear(),
-                        Abnormal_URL: 0
+                        Domain_Registration_Length: (expirationDateObj.getFullYear()-now.getFullYear()) <= 1 ? -1 : 1,
+                        Domain_age: (now.getFullYear() - creationDateObj.getFullYear()) >= 1 ? 1 : -1,
+                        Abnormal_URL: -1
                     };
                     
                     //console.log(`Creation Date: ${creationDate}`);
@@ -196,43 +228,63 @@ async function extractURLFeatures(url) {
 
         let hasDNSRecord = 0;
         dns.lookup(hostname, (err) => {
-            hasDNSRecord = err ? 0 : 1;
+            hasDNSRecord = err ? -1 : 1;
         });
 
-        //const websiteTraffic = "------"; //similarweb or ahrefs?
+        const websiteTraffic = 0; //similarweb or ahrefs?
 
         const pageRankAPIKey = `${process.env.PAGE_RANK_API_KEY}`;
-        const pageRank = await getPageRank(hostname, pageRankAPIKey);
+        const pageRankT = await getPageRank(hostname, pageRankAPIKey);
+        const pageRank = pageRankT < 2 ? -1: 1
 
         const googleAPIKey = `${process.env.GOOGLE_API_KEY}`;
         const searchEngineId = `${process.env.searchEngineId}`;
         const isIndexed = await isGoogleIndexed(url, googleAPIKey, searchEngineId);
 
-        return [
-            hasIPAddress,
-            urlLength,
-            isShortenedURL,
-            hasAtSymbol,
-            hasDoubleSlashRedirecting,
-            hasDash,
-            subDomainCount,
-            domainInfo.Domain_Registration_Length,
-            faviconExternal,
-            hasPort,
-            hasHttps,
-            requestUrlRatio,
-            anchorUrlRatio,
-            linksInTagsRatio,
-            domainInfo.Abnormal_URL,
-            domainInfo.Domain_age,
-            hasDNSRecord,
-            //Website_traffic: websiteTraffic,
-            pageRank,
-            isIndexed
-        ];
+        return {
+            having_IP_Address: hasIPAddress,
+            URL_Length: urlLength,
+            Shortining_Service: isShortenedURL,
+            having_At_Symbol: hasAtSymbol,
+            double_slash_redirecting: hasDoubleSlashRedirecting,
+            Prefix_Suffix: hasDash,
+            having_Sub_Domain: subDomainCount,
+            Domain_Registeration_Length: domainInfo.Domain_Registration_Length,
+            Favicon: faviconExternal,
+            Port: hasPort,
+            HTTPS_token: hasHttps,
+            Request_URL: requestUrlRatio,
+            Anchor_URL: anchorUrlRatio,
+            Links_in_Tags: linksInTagsRatio,
+            abnormal_URL: domainInfo.Abnormal_URL,
+            Domain_Age: domainInfo.Domain_age,
+            DNS_record: hasDNSRecord,
+            Website_traffic: websiteTraffic,
+            Page_rank: pageRank,
+            Google_Index: isIndexed
+        };
     } catch (error) { //being extra safe
         console.error("Invalid URL:", error);
-        return [ 1,100,1,1,1,1,10,0,1,0,0,1,1,1,-1,-1,0,-1, 0];
+        return {having_IP_Address: 0,
+        URL_Length: 0,
+        Shortining_Service: 0,
+        having_At_Symbol: 0,
+        double_slash_redirecting: 0,
+        Prefix_Suffix: 0,
+        having_Sub_Domain: 0,
+        Domain_Registeration_Length: 0,
+        Favicon: 0,
+        Port: 0,
+        HTTPS_token: 0,
+        Request_URL: 0,
+        Anchor_URL: 0,
+        Links_in_Tags: 0,
+        abnormal_URL: 0,
+        Domain_Age: 0,
+        DNS_record: 0,
+        Website_traffic: 0,
+        Page_rank: 0,
+        Google_Index: 0}
     }
 }
 
