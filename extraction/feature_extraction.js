@@ -231,8 +231,6 @@ async function extractURLFeatures(url) {
             hasDNSRecord = err ? -1 : 1;
         });
 
-        const websiteTraffic = 0; //similarweb or ahrefs?
-
         const pageRankAPIKey = `${process.env.PAGE_RANK_API_KEY}`;
         const pageRankT = await getPageRank(hostname, pageRankAPIKey);
         const pageRank = pageRankT < 2 ? -1: 1
@@ -259,7 +257,6 @@ async function extractURLFeatures(url) {
             abnormal_URL: domainInfo.Abnormal_URL,
             Domain_Age: domainInfo.Domain_age,
             DNS_record: hasDNSRecord,
-            Website_traffic: websiteTraffic,
             Page_rank: pageRank,
             Google_Index: isIndexed
         };
@@ -282,7 +279,6 @@ async function extractURLFeatures(url) {
         abnormal_URL: 0,
         Domain_Age: 0,
         DNS_record: 0,
-        Website_traffic: 0,
         Page_rank: 0,
         Google_Index: 0}
     }
@@ -292,14 +288,14 @@ module.exports = {
     extractURLFeatures
 };
 
-// (async () => { //needs to be async otherwise you're just gonna get Promises returned
-//     var start = Date.now();
-//     const url = "https://www.google.com/";
-//     try {
-//         const features = await extractURLFeatures(url);
-//         console.log("Extraction Time (ms):", Date.now()-start);
-//         console.log("Extracted Features:", features);
-//     } catch (error) {
-//         console.error("Error extracting features:", error);
-//     }
-// })();
+(async () => { //needs to be async otherwise you're just gonna get Promises returned
+    var start = Date.now();
+    const url = "https://www.google.com/";
+    try {
+        const features = await extractURLFeatures(url);
+        console.log("Extraction Time (ms):", Date.now()-start);
+        console.log("Extracted Features:", features);
+    } catch (error) {
+        console.error("Error extracting features:", error);
+    }
+})();

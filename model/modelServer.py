@@ -8,7 +8,7 @@ app = Flask(__name__)
 CORS(app)
 
 try:
-    model = joblib.load("./random_forest_model.pkl")
+    model = joblib.load("./random_forest_model_2.pkl")
     print("Model loaded successfully")
 except Exception as e:
     print(f"Error loading model: {e}")
@@ -21,18 +21,18 @@ def predict_url(model, feature_dict):
         'having_Sub_Domain', 'Domain_Registeration_Length', 'Favicon',
         'Port', 'HTTPS_token', 'Request_URL', 'Anchor_URL',
         'Links_in_Tags', 'Abnormal_URL', 'Domain_age', 'DNS_record',
-        'Website_traffic', 'Page_rank', 'Google_Index'
+        'Page_rank', 'Google_Index'
     ]
     
-    print("\n=== Feature Dictionary ===")
-    print(json.dumps(feature_dict, indent=2))
-    print("======================\n")
+    # print("\n=== Feature Dictionary ===")
+    # print(json.dumps(feature_dict, indent=2))
+    # print("======================\n")
     
     df = pd.DataFrame([feature_dict], columns=required_features)
     
-    print("=== DataFrame ===")
-    print(df)
-    print("===============\n")
+    # print("=== DataFrame ===")
+    # print(df)
+    # print("===============\n")
     
     prediction = model.predict(df)
     return int(prediction[0])
