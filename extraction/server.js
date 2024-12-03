@@ -18,6 +18,7 @@ app.post('/extract-features', async (req, res) => {
         const timeElapsed = Date.now() - start;
         
         console.log(`Feature extraction completed in ${timeElapsed}ms`);
+        console.log('Extracted Features:', features);
         
         // Check if features were actually returned
         if (!features) {

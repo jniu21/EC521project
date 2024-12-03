@@ -13,22 +13,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     // Function to show analysis result
-    const showAnalysisResult = (features, extractionTime) => {
-        // Create a formatted display of all features
-        const featureList = Object.entries(features)
-            .map(([key, value]) => `<strong>${key}:</strong> ${value}`)
-            .join('<br>');
-
+    function showAnalysisResult(result) {
+        if (!result.success) {
+            analysisResult.textContent = `Error: ${result.message}`;
+            analysisResult.className = 'message-box error';
+            analysisResult.style.display = 'block';
+            return;
+        }
+    
+        const resultClass = result.prediction === 'legit' ? 'success' : 'error';
+        const headerColor = result.prediction === 'legit' ? '#1b5e20' : '#b71c1c';
+    
         analysisResult.innerHTML = `
-            <h3>Feature Extraction Results:</h3>
-            <div>Extraction Time: ${extractionTime}ms</div>
-            <div class="feature-list">
-                ${featureList}
-            </div>
+            <h3 style="color: ${headerColor}">Analysis Result</h3>
+            <div class="prediction"><strong>Verdict: ${result.prediction}</strong></div>
+            <div class="extraction-time">Time: ${result.extractionTime}ms</div>
         `;
-        analysisResult.className = 'message-box info';
+        
+        analysisResult.className = `message-box ${resultClass}`;
         analysisResult.style.display = 'block';
-    };
+    }
 
     // Function to analyze URL
     const analyzeCurrentUrl = async (url) => {
@@ -39,15 +43,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 action: "analyzeUrl",
                 url: url
             });
-
+    
             if (response.success) {
-                showAnalysisResult(response.features, response.extractionTime);
+                showAnalysisResult(response);
                 showMessage('Analysis complete', 'success');
             } else {
-                analysisResult.textContent = 'Unable to analyze URL';
-                analysisResult.className = 'message-box error';
-                analysisResult.style.display = 'block';
-                showMessage(response.message, 'error');
+                showMessage(response.message || 'Analysis failed', 'error');
             }
         } catch (error) {
             console.error('Analysis error:', error);

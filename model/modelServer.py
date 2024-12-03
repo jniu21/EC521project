@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import joblib
 import pandas as pd
+import json
 
 app = Flask(__name__)
 CORS(app)
@@ -14,16 +15,6 @@ except Exception as e:
     model = None
 
 def predict_url(model, feature_dict):
-    """
-    Make predictions using the loaded Random Forest model.
-    
-    Args:
-        model: Loaded joblib model
-        feature_dict: Dictionary containing feature values
-        
-    Returns:
-        Prediction from the model
-    """
     required_features = [
         'having_IP_Address', 'URL_Length', 'Shortining_Service',
         'having_At_Symbol', 'double_slash_redirecting', 'Prefix_Suffix',
@@ -33,16 +24,20 @@ def predict_url(model, feature_dict):
         'Website_traffic', 'Page_rank', 'Google_Index'
     ]
     
+    print("\n=== Feature Dictionary ===")
+    print(json.dumps(feature_dict, indent=2))
+    print("======================\n")
+    
     df = pd.DataFrame([feature_dict], columns=required_features)
     
-    # Make prediction
+    print("=== DataFrame ===")
+    print(df)
+    print("===============\n")
+    
     prediction = model.predict(df)
-    return int(prediction[0])  # Convert numpy int to Python int for JSON serialization
+    return int(prediction[0])
 
 def get_prediction_message(prediction):
-    """
-    Convert prediction value to corresponding message.
-    """
     if prediction == -1:
         return 'phishing'
     elif prediction == 0:
@@ -61,25 +56,36 @@ def predict():
         }), 500
 
     try:
-        # Get feature dictionary from request
+        print("\n=== Received Request ===")
+        print("Content-Type:", request.headers.get('Content-Type'))
+        print("Request Data:", json.dumps(request.json, indent=2))
+        print("=====================\n")
+        
         feature_dict = request.json
-        
-        # Make prediction
         prediction = predict_url(model, feature_dict)
-        
-        # Get corresponding message
         message = get_prediction_message(prediction)
         
-        return jsonify({
+        response = {
             'success': True,
             'prediction': prediction,
             'message': message
-        })
+        }
+        
+        print("=== Sending Response ===")
+        print(json.dumps(response, indent=2))
+        print("=====================\n")
+        
+        return jsonify(response)
+        
     except Exception as e:
-        return jsonify({
+        error_response = {
             'success': False,
             'error': str(e)
-        }), 400
+        }
+        print("=== Error ===")
+        print(json.dumps(error_response, indent=2))
+        print("============\n")
+        return jsonify(error_response), 400
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
