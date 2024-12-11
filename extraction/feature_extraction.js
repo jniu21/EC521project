@@ -134,13 +134,15 @@ async function getPageRank(url, apiKey) {
         });
         if (response.data && response.data.response && response.data.response[0]) {
             const rank = response.data.response[0].page_rank_decimal;
-            return (rank !== null && rank !== '') ? rank : 0; 
+            pageRankT = (rank !== null && rank !== '') ? rank : 0; 
+            webTrafficT = response.data.response[0].rank;
+            return {webTrafficT, pageRankT}
         } else {
-            return 0; 
+            return {0, 0}; 
         }
     } catch (error) {
         console.error("Error fetching PageRank:", error.message);
-        return 0; 
+        return {0, 0}; 
     }
 }
 
@@ -231,11 +233,10 @@ async function extractURLFeatures(url) {
             hasDNSRecord = err ? -1 : 1;
         });
 
-        const websiteTraffic = 1; //similarweb or ahrefs?
-
         const pageRankAPIKey = `${process.env.PAGE_RANK_API_KEY}`;
-        const pageRankT = await getPageRank(hostname, pageRankAPIKey);
-        const pageRank = pageRankT < 2 ? -1: 1
+        const {webTrafficT, pageRankT} = await getPageRank(hostname, pageRankAPIKey);
+        const pageRank = pageRankT < 2 ? -1: 1;
+         const websiteTraffic = webTrafficT < 3 ? -1:1;
 
         const googleAPIKey = `${process.env.GOOGLE_API_KEY}`;
         const searchEngineId = `${process.env.searchEngineId}`;
